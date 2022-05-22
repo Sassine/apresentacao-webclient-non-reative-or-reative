@@ -4,10 +4,13 @@
  */
 package dev.sasine.apresentacao.webclient.cep.controller;
 
+import static java.lang.System.out;
+
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,11 +31,11 @@ public class ConsultaCEPController {
 	
 	@GetMapping
 	public Map<String, String> getLinks() {
-		return Map.of("Normal","/cep/17015311", "Reativo","/cep/reative/17015311");
+		return Map.of("Bloqueante","/cep/17015311", "Não Bloqueante","/cep/non-block/17015311");
 	}
 
-	@GetMapping("/reative/{cep}")
-	public String getCepReative(@PathVariable String cep) {
+	@GetMapping("/non-block/{cep}")
+	public String getCepNaoBloqueante(@PathVariable String cep) {
 		
 		webClient
 		.method(HttpMethod.GET)
@@ -40,10 +43,10 @@ public class ConsultaCEPController {
 		.retrieve()
 		.bodyToMono(String.class)
 		.subscribe(i -> {
-			System.out.println("A request retornou agora ;) ");
+			out.println("A request retornou agora ;) ");
 		});
 		
-		System.out.println("getFixedCepReative completa");
+		out.println("getCepNaoBloqueante completa");
 	
 		return "Chamada realizada ;)";
 	}
@@ -51,12 +54,13 @@ public class ConsultaCEPController {
 	@GetMapping("/{cep}")
 	public CepDTO findCep(@PathVariable String cep) {
 		
-		System.out.println("find Cep foi chamado %s".formatted(cep));
+		out.println("find Cep foi chamado %s".formatted(cep));
 		
 		return consultaCep
 				.get()
 				.uri(uriBuilder -> uriBuilder.path("/{cep}/json/").build(cep))
 				.retrieve()
+				.onStatus(HttpStatus.BAD_REQUEST::equals, response -> response.bodyToMono(String.class).map(RuntimeException::new))
 				.bodyToMono(CepDTO.class)
 				.block();
 	}
